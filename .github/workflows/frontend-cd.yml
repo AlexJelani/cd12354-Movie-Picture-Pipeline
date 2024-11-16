@@ -42,9 +42,6 @@ jobs:
   build-and-push:
     needs: [lint, test]
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: starter/frontend
     steps:
       - uses: actions/checkout@v3
       
@@ -68,6 +65,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
   deploy:
+    needs: build-and-push
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -86,8 +84,8 @@ jobs:
       - name: Configure kubectl
         run: |
           aws eks update-kubeconfig --name cluster --region us-east-1
-          aws eks get-token --cluster-name cluster | kubectl apply -f -
-
+          kubectl version
+          kubectl auth can-i get nodes
       - name: Deploy to EKS
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -95,5 +93,5 @@ jobs:
         run: |
           cd starter/frontend/k8s/
           kubectl get nodes
-          kustomize edit set image frontend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          kustomize edit set image frontend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG  
           kustomize build | kubectl apply -f - --validate=false
