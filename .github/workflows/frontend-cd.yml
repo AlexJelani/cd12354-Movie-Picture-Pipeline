@@ -40,8 +40,10 @@ jobs:
       - run: CI=true npm test
 
   build-and-push:
-    needs: [lint, test]
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: starter/frontend
     steps:
       - uses: actions/checkout@v3
       
@@ -63,7 +65,6 @@ jobs:
         run: |
           docker build --build-arg=REACT_APP_MOVIE_API_URL=http://localhost:5000 -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -94,4 +95,4 @@ jobs:
           cd starter/frontend/k8s/
           kubectl get nodes
           kustomize edit set image frontend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG  
-          kustomize build | kubectl apply -f - --validate=false
+          fkustomize build | kubectl apply -f - --validate=false
