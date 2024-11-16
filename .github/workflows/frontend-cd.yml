@@ -79,8 +79,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Update kubeconfig
-        run: aws eks update-kubeconfig --name cluster --region us-east-1
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig --name cluster --region us-east-1
+          aws eks get-token --cluster-name cluster | kubectl apply -f -
 
       - name: Deploy to EKS
         env:
@@ -88,6 +94,6 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           cd starter/frontend/k8s/
-          kubectl get nodes # Verify cluster connection
+          kubectl get nodes
           kustomize edit set image frontend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           kustomize build | kubectl apply -f - --validate=false
