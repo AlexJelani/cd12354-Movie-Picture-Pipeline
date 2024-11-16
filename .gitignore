@@ -5,3 +5,11 @@ node_modules
 *.tfstate.backup
 credentials
 .pytest_cache
+
+# Terraform files
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+setup/terraform/.terraform.lock.hcl
+setup/terraform/terraform.tfstate
