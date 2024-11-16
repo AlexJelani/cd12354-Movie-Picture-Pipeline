@@ -83,10 +83,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Configure kubectl auth
+      - name: Configure kubectl
         run: |
-          aws eks get-token --cluster-name cluster --region us-east-1
-          kubectl cluster-info
+          aws eks update-kubeconfig --name cluster --region us-east-1
+          kubectl get nodes # Verify connection
           
       - name: Deploy to EKS
         env:
