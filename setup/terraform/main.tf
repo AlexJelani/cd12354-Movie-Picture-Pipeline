@@ -196,16 +196,14 @@ resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name
   version         = aws_eks_cluster.main.version
   node_role_arn   = aws_iam_role.node_group.arn
-  subnet_ids      = [var.enable_private == true ? aws_subnet.private_subnet.id : aws_subnet.public_subnet.id]
-  release_version = nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
+  subnet_ids      = [aws_subnet.public_subnet.id, aws_subnet.private_subnet.id]
   instance_types  = ["t3.small"]
-
+  
   scaling_config {
     desired_size = 1
     max_size     = 1
     min_size     = 1
   }
-
 
   # Ensure that IAM Role permissions are created before and deleted after EKS Node Group handling.
   # Otherwise, EKS will not be able to properly delete EC2 Instances and Elastic Network Interfaces.
@@ -219,7 +217,6 @@ resource "aws_eks_node_group" "main" {
     ignore_changes = [scaling_config.0.desired_size]
   }
 }
-
 // IAM Configuration
 resource "aws_iam_role" "node_group" {
   name               = "udacity-node-group"
