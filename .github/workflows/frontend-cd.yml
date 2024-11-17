@@ -10,10 +10,37 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: frontend
-  EKS_CLUSTER: cluster
+  EKS_CLUSTER: movie-pipeline
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: starter/frontend
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+      - run: npm ci
+      - run: npm run lint
+
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: starter/frontend
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+      - run: npm ci
+      - run: CI=true npm test
+
   build-and-push:
+    needs: [lint, test]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -28,9 +55,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          role-session-name: GithubActions
 
-          
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
@@ -46,6 +71,9 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: starter/frontend/k8s
     steps:
       - uses: actions/checkout@v3
       
@@ -56,22 +84,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-
-      - name: Configure kubectl
-        run: |
-          aws eks update-kubeconfig --name cluster --region us-east-1
-          kubectl version
-          kubectl auth can-i get nodes
+      - name: Update kube config
+        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER }}
 
       - name: Deploy to EKS
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          cd starter/frontend/k8s/
-          kubectl get nodes
           kustomize edit set image frontend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          kustomize build | kubectl apply -f - --validate=false
+          kustomize build | kubectl apply -f -
