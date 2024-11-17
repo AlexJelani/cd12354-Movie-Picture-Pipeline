@@ -13,3 +13,4 @@ credentials
 .terraform.lock.hcl
 setup/terraform/.terraform.lock.hcl
 setup/terraform/terraform.tfstate
+setup/terraform/terraform.tfstate
