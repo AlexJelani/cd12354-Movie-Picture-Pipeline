@@ -61,10 +61,10 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           REACT_APP_MOVIE_API_URL: ${{ secrets.REACT_APP_MOVIE_API_URL }}
         run: |
-          docker build \
-            --build-arg=REACT_APP_MOVIE_API_URL="http://$REACT_APP_MOVIE_API_URL/" \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG  deploy:
+          docker build --build-arg=REACT_APP_MOVIE_API_URL="http://$REACT_APP_MOVIE_API_URL/" -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+  deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     defaults:
