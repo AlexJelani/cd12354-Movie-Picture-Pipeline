@@ -465,6 +465,10 @@ kustomize edit set image backend=<ECR_REPO_URL>:<NEW_TAG_HERE>
 # Apply the manifests to the cluster
 kustomize build | kubectl apply -f -
 ```
+![Frontend CI](https://github.com/{owner}/{repo}/actions/workflows/frontend-ci.yml/badge.svg)
+![Backend CI](https://github.com/{owner}/{repo}/actions/workflows/backend-ci.yml/badge.svg)
+![Frontend CD](https://github.com/{owner}/{repo}/actions/workflows/frontend-cd.yml/badge.svg)
+![Backend CD](https://github.com/{owner}/{repo}/actions/workflows/backend-cd.yml/badge.svg)
 
 ## License
 
