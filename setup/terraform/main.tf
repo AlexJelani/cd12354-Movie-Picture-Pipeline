@@ -317,3 +317,44 @@ data "aws_iam_policy_document" "github_policy" {
     resources = ["*"]
   }
 }
+
+resource "aws_iam_user_policy" "codebuild_access" {
+  name = "codebuild-access"
+  user = "iamadmin"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "codebuild:*"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+# Add resource-based policy for CodeBuild
+resource "aws_codebuild_resource_policy" "codebuild_policy" {
+  resource_arn = aws_codebuild_project.codebuild.arn
+  
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::541906120544:user/iamadmin"
+        }
+        Action = [
+          "codebuild:BatchGetProjects",
+          "codebuild:StartBuild",
+          "codebuild:StopBuild",
+          "codebuild:ListBuilds"
+        ]
+        Resource = aws_codebuild_project.codebuild.arn
+      }
+    ]
+  })
+}
