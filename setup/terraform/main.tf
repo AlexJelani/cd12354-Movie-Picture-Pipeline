@@ -142,7 +142,7 @@ resource "aws_ecr_repository" "backend" {
 # Create an EKS cluster
 resource "aws_eks_cluster" "main" {
   name     = "cluster"
-  version  = var.k8s_version
+  version  = "1.26"  # Updated version to match current cluster
   role_arn = aws_iam_role.eks_cluster.arn
   vpc_config {
     subnet_ids              = [aws_subnet.private_subnet.id, aws_subnet.public_subnet.id]
@@ -151,8 +151,6 @@ resource "aws_eks_cluster" "main" {
   }
   depends_on = [aws_iam_role_policy_attachment.eks_cluster, aws_iam_role_policy_attachment.eks_service]
 }
-
-
 # Create an IAM role for the EKS cluster
 resource "aws_iam_role" "eks_cluster" {
   name = "eks_cluster_role"
@@ -194,9 +192,9 @@ data "aws_ssm_parameter" "eks_ami_release_version" {
 resource "aws_eks_node_group" "main" {
   node_group_name = "udacity"
   cluster_name    = aws_eks_cluster.main.name
-  version         = aws_eks_cluster.main.version
+  version         = aws_eks_cluster.main.version  # This will use the cluster's version (1.26)
   node_role_arn   = aws_iam_role.node_group.arn
-  subnet_ids      = [aws_subnet.public_subnet.id, aws_subnet.private_subnet.id]
+  subnet_ids      = [aws_subnet.private_subnet.id]  # Use only private subnet for worker nodes
   instance_types  = ["t3.small"]
   
   scaling_config {
@@ -205,17 +203,11 @@ resource "aws_eks_node_group" "main" {
     min_size     = 1
   }
 
-  # Ensure that IAM Role permissions are created before and deleted after EKS Node Group handling.
-  # Otherwise, EKS will not be able to properly delete EC2 Instances and Elastic Network Interfaces.
   depends_on = [
     aws_iam_role_policy_attachment.node_group_policy,
     aws_iam_role_policy_attachment.cni_policy,
     aws_iam_role_policy_attachment.ecr_policy,
   ]
-
-  lifecycle {
-    ignore_changes = [scaling_config.0.desired_size]
-  }
 }
 // IAM Configuration
 resource "aws_iam_role" "node_group" {
