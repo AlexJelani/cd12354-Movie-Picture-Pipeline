@@ -142,7 +142,7 @@ resource "aws_ecr_repository" "backend" {
 # Create an EKS cluster
 resource "aws_eks_cluster" "main" {
   name     = "cluster"
-  version  = "1.26"  # Updated version to match current cluster
+  version  = var.k8s_version
   role_arn = aws_iam_role.eks_cluster.arn
   vpc_config {
     subnet_ids              = [aws_subnet.private_subnet.id, aws_subnet.public_subnet.id]
@@ -151,6 +151,8 @@ resource "aws_eks_cluster" "main" {
   }
   depends_on = [aws_iam_role_policy_attachment.eks_cluster, aws_iam_role_policy_attachment.eks_service]
 }
+
+
 # Create an IAM role for the EKS cluster
 resource "aws_iam_role" "eks_cluster" {
   name = "eks_cluster_role"
@@ -192,23 +194,32 @@ data "aws_ssm_parameter" "eks_ami_release_version" {
 resource "aws_eks_node_group" "main" {
   node_group_name = "udacity"
   cluster_name    = aws_eks_cluster.main.name
-  version         = aws_eks_cluster.main.version  # This will use the cluster's version (1.26)
+  version         = aws_eks_cluster.main.version
   node_role_arn   = aws_iam_role.node_group.arn
-  subnet_ids      = [aws_subnet.private_subnet.id]  # Use only private subnet for worker nodes
+  subnet_ids      = [var.enable_private == true ? aws_subnet.private_subnet.id : aws_subnet.public_subnet.id]
+  release_version = nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
   instance_types  = ["t3.small"]
-  
+
   scaling_config {
     desired_size = 1
     max_size     = 1
     min_size     = 1
   }
 
+
+  # Ensure that IAM Role permissions are created before and deleted after EKS Node Group handling.
+  # Otherwise, EKS will not be able to properly delete EC2 Instances and Elastic Network Interfaces.
   depends_on = [
     aws_iam_role_policy_attachment.node_group_policy,
     aws_iam_role_policy_attachment.cni_policy,
     aws_iam_role_policy_attachment.ecr_policy,
   ]
+
+  lifecycle {
+    ignore_changes = [scaling_config.0.desired_size]
+  }
 }
+
 // IAM Configuration
 resource "aws_iam_role" "node_group" {
   name               = "udacity-node-group"
@@ -316,45 +327,4 @@ data "aws_iam_policy_document" "github_policy" {
     actions   = ["ecr:*", "eks:*", "ec2:*", "iam:GetUser"]
     resources = ["*"]
   }
-}
-
-resource "aws_iam_user_policy" "codebuild_access" {
-  name = "codebuild-access"
-  user = "iamadmin"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "codebuild:*"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-}
-# Add resource-based policy for CodeBuild
-resource "aws_codebuild_resource_policy" "codebuild_policy" {
-  resource_arn = aws_codebuild_project.codebuild.arn
-  
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          AWS = "arn:aws:iam::541906120544:user/iamadmin"
-        }
-        Action = [
-          "codebuild:BatchGetProjects",
-          "codebuild:StartBuild",
-          "codebuild:StopBuild",
-          "codebuild:ListBuilds"
-        ]
-        Resource = aws_codebuild_project.codebuild.arn
-      }
-    ]
-  })
 }
