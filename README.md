@@ -11,6 +11,11 @@ You'll find 2 folders, one named `frontend` and one named `backend`, where each 
 
 ## Deliverables
 
+ # Movie Picture Pipeline
+
+Frontend Application: http://ac8d022c44bd94b7487cb32dbf66deb6-1232875837.us-east-1.elb.amazonaws.com
+
+
 ### Frontend
 
 1. A Continuous Integration workflow that:
